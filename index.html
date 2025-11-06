@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SmartFashion — Tienda de Ropa</title>
+    <link rel="stylesheet" href="styles.css" />
+    <meta name="description" content="SmartFashion - Moda inteligente, sostenible y a la moda." />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container header-inner">
+        <a class="brand" href="#">SmartFashion</a>
+        <nav class="nav" id="nav" role="navigation" aria-label="Menú principal">
+          <a href="#coleccion">Colección</a>
+          <a href="#nosotros">Nosotros</a>
+          <a href="#contacto">Contacto</a>
+          <a href="checkout.html" class="nav-link">Ver carrito</a>
+          <button id="cartBtn" class="cart-btn" aria-live="polite">Carrito (0)</button>
+        </nav>
+        <button class="nav-toggle" id="navToggle" aria-label="Abrir menú">☰</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="container hero-inner">
+          <h1>SmartFashion</h1>
+          <p>Moda inteligente y sostenible. Encuentra tu estilo.</p>
+          <a class="btn" href="#coleccion">Ver colección</a>
+        </div>
+      </section>
+
+      <section id="coleccion" class="container products-section">
+        <h2>Colección destacada</h2>
+        <div class="products-grid" id="productsGrid">
+          <!-- Productos insertados por JS -->
+        </div>
+      </section>
+
+      <section id="nosotros" class="container about">
+        <h2>Sobre SmartFashion</h2>
+        <p>SmartFashion combina diseño y sostenibilidad. Materiales responsables y diseños atemporales.</p>
+      </section>
+
+      <section id="contacto" class="container contact">
+        <h2>Contacto</h2>
+        <p> Canales Oficiales de la Tienda:</p>
+        <address class="store-contact">
+          <p><img class="icon" src="assets/phone.svg" alt="Teléfono"/><strong>Teléfono:</strong> <a href="tel:+52 767-130-1518">+52 767-130-1518</a></p>
+          <p><img class="icon" src="assets/whatsapp.svg" alt="WhatsApp"/><strong>WhatsApp:</strong> <a href="https://wa.me/7671301518?text=Hola%2C%20quiero%20informacion" target="_blank" rel="noopener">Enviar mensaje por WhatsApp</a></p>
+          <p><img class="icon" src="assets/facebook.svg" alt="Facebook"/><strong>Facebook:</strong> <a href="https://facebook.com/SmartFashionStore" target="_blank" rel="noopener">facebook.com/SmartFashionStore</a></p>
+          <p><img class="icon" src="assets/email.svg" alt="Email"/><strong>Email:</strong> <a href="mailto:contacto@smartfashion.example">contacto@smartfashion.example</a></p>
+          <p class="muted">Horario de atención: Lun-Vie 9:00–18:00</p>
+        </address>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container">
+        <p>© <span id="year"></span> SmartFashion. Todos los derechos reservados.</p>
+      </div>
+    </footer>
+
+    <!-- Modal de producto -->
+    <div id="productModal" class="modal" aria-hidden="true" role="dialog" aria-labelledby="modalTitle">
+      <div class="modal-dialog">
+        <button class="modal-close" id="modalClose" aria-label="Cerrar">×</button>
+        <img id="modalImg" src="" alt="" />
+        <h3 id="modalTitle"></h3>
+        <p id="modalDesc"></p>
+        <strong id="modalPrice"></strong>
+        <div style="margin-top:0.8rem"><button id="modalAdd" class="btn">Añadir al Carrito</button></div>
+      </div>
+    </div>
+
+    <script src="scripts.js"></script>
+  </body>
+</html>
