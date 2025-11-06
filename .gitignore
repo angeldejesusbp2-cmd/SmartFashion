@@ -1,0 +1,11 @@
+@"
+# Windows
+Thumbs.db
+Desktop.ini
+
+# Node / editor / system
+node_modules/
+.vscode/
+.DS_Store
+*.log
+"@ | Out-File -Encoding UTF8 .gitignore
