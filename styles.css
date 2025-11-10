@@ -62,6 +62,77 @@ input,textarea{padding:0.6rem;border-radius:8px;border:1px solid #e6e6e6}
 .checkout .meta{flex:1}
 .checkout .actions{display:flex;gap:0.5rem}
 
+/* Remove button styling */
+.remove-btn{
+  background:#ff6b6b;
+  color:#fff;
+  border:0;
+  padding:0.4rem 0.8rem;
+  border-radius:6px;
+  cursor:pointer;
+  font-size:0.85rem;
+  font-weight:600;
+  transition:all 0.2s ease;
+}
+.remove-btn:hover{
+  background:#ff5252;
+  transform:translateY(-2px);
+  box-shadow:0 4px 8px rgba(255,107,107,0.3);
+}
+.remove-btn:active{
+  transform:translateY(0);
+}
+
+/* Quantity controls styling */
+.qty-controls{
+  display:flex;
+  align-items:center;
+  gap:0.4rem;
+  flex-wrap:wrap;
+}
+.inc-btn, .dec-btn{
+  background:#f0f0f0;
+  color:#111;
+  border:1px solid #ddd;
+  padding:0.35rem 0.6rem;
+  border-radius:5px;
+  cursor:pointer;
+  font-weight:600;
+  transition:all 0.2s ease;
+}
+.inc-btn:hover, .dec-btn:hover{
+  background:#e0e0e0;
+  border-color:#999;
+}
+.inc-btn:active, .dec-btn:active{
+  transform:scale(0.95);
+}
+.prod-qty{
+  min-width:2rem;
+  text-align:center;
+  font-weight:600;
+  color:#111;
+}
+
+.add-btn{
+  background:var(--accent);
+  color:#fff;
+  padding:0.4rem 0.8rem;
+  border:0;
+  border-radius:6px;
+  cursor:pointer;
+  font-weight:600;
+  transition:all 0.2s ease;
+}
+.add-btn:hover:not(:disabled){
+  background:#ff5252;
+  transform:translateY(-2px);
+}
+.add-btn:disabled{
+  opacity:0.5;
+  cursor:not-allowed;
+}
+
 /* Focus styles for accessibility */
 :focus{outline:3px solid #cfe1ff;outline-offset:3px}
 

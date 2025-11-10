@@ -41,6 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Render products with images and lazy-loading
   function renderProducts() {
     if (!productsGrid) return;
+    const cart = loadCart();
     productsGrid.innerHTML = '';
     products.forEach(p => {
       const el = document.createElement('article');
@@ -51,7 +52,12 @@ document.addEventListener('DOMContentLoaded', () => {
         <p>${p.desc}</p>
         <div class="meta">
           <strong>$${p.price.toFixed(2)}</strong>
-          <div><button class="add-btn" data-id="${p.id}">Añadir</button></div>
+          <div class="qty-controls">
+            <button class="dec-btn" data-id="${p.id}" aria-label="Disminuir cantidad">-</button>
+            <span class="prod-qty" data-id="${p.id}">${cart[p.id] || 0}</span>
+            <button class="inc-btn" data-id="${p.id}" aria-label="Aumentar cantidad">+</button>
+            <button class="add-btn" data-id="${p.id}">Añadir</button>
+          </div>
         </div>
       `;
       productsGrid.appendChild(el);
@@ -77,15 +83,62 @@ document.addEventListener('DOMContentLoaded', () => {
     updateCartUI();
   }
 
+  // Decrease quantity of a product in the cart by `qty` (default 1).
+  // If quantity reaches 0, the product is removed from the cart.
+  function decreaseFromCart(id, qty = 1) {
+    const cart = loadCart();
+    if (!cart[id]) return;
+    cart[id] = Number(cart[id]) - Number(qty || 1);
+    if (cart[id] <= 0) delete cart[id];
+    saveCart(cart);
+    updateCartUI();
+  }
+
   // Delegación para botones dentro de productsGrid
   if (productsGrid) {
     productsGrid.addEventListener('click', e => {
+      const decBtn = e.target.closest('.dec-btn');
+      if (decBtn) {
+        const id = decBtn.dataset.id;
+        decreaseFromCart(id, 1);
+        // actualizar contador visible en la tarjeta
+        const qtySpan = productsGrid.querySelector(`.prod-qty[data-id="${id}"]`);
+        if (qtySpan) {
+          const cart = loadCart();
+          qtySpan.textContent = cart[id] || 0;
+        }
+        if (typeof renderCheckout === 'function') try { renderCheckout(); } catch (e) {}
+        return;
+      }
+
+      const incBtn = e.target.closest('.inc-btn');
+      if (incBtn) {
+        const id = incBtn.dataset.id;
+        addToCart(id, 1);
+        // actualizar contador visible en la tarjeta
+        const qtySpan = productsGrid.querySelector(`.prod-qty[data-id="${id}"]`);
+        if (qtySpan) {
+          const cart = loadCart();
+          qtySpan.textContent = cart[id] || 0;
+        }
+        // si existe mini-checkout en la página, re-renderizarlo
+        if (typeof renderCheckout === 'function') try { renderCheckout(); } catch (e) {}
+        return;
+      }
+
       const addBtn = e.target.closest('.add-btn');
       if (addBtn) {
         const id = addBtn.dataset.id;
         addToCart(id, 1);
         addBtn.textContent = 'Añadido';
         addBtn.disabled = true;
+        // actualizar contador visible en la tarjeta
+        const qtySpan = productsGrid.querySelector(`.prod-qty[data-id="${id}"]`);
+        if (qtySpan) {
+          const cart = loadCart();
+          qtySpan.textContent = cart[id] || 0;
+        }
+        if (typeof renderCheckout === 'function') try { renderCheckout(); } catch (e) {}
         return;
       }
 
@@ -143,18 +196,23 @@ document.addEventListener('DOMContentLoaded', () => {
   if (modal) modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
 
-  if (modalAdd) modalAdd.addEventListener('click', () => { if (modalProductId) { addToCart(modalProductId, 1); closeModal(); } });
+  if (modalAdd) modalAdd.addEventListener('click', () => {
+    if (modalProductId) {
+      addToCart(modalProductId, 1);
+      // actualizar contador visible en la tarjeta si existe
+      const qtySpan = productsGrid && productsGrid.querySelector(`.prod-qty[data-id="${modalProductId}"]`);
+      if (qtySpan) {
+        const cart = loadCart();
+        qtySpan.textContent = cart[modalProductId] || 0;
+      }
+      // re-render checkout si está presente
+      if (typeof renderCheckout === 'function') try { renderCheckout(); } catch (e) {}
+      closeModal();
+    }
+  });
 
-  // Contact form handler (if present)
-  const contactForm = document.getElementById('contactForm');
-  if (contactForm) {
-    contactForm.addEventListener('submit', e => {
-      e.preventDefault();
-      const fm = new FormData(contactForm);
-      alert(`Gracias ${fm.get('name')}, recibimos tu mensaje.`);
-      contactForm.reset();
-    });
-  }
+ 
+  
 
   // If on checkout page, render items
   const checkoutList = document.getElementById('checkoutItems');
@@ -192,7 +250,7 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('checkoutTotal').textContent = `$${total.toFixed(2)}`;
     }
 
-    // Delegación para eliminar
+    // Delegación para acciones en checkout: eliminar
     checkoutList.addEventListener('click', e => {
       const btn = e.target.closest('.remove-btn');
       if (!btn) return;
@@ -205,7 +263,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const clearBtn = document.getElementById('clearCart');
     if (clearBtn) clearBtn.addEventListener('click', () => { localStorage.removeItem('sf_cart'); updateCartUI(); renderCheckout(); });
     const finishBtn = document.getElementById('finishOrder');
-    if (finishBtn) finishBtn.addEventListener('click', () => { alert('Compra simulada finalizada. ¡Gracias!'); localStorage.removeItem('sf_cart'); updateCartUI(); renderCheckout(); });
+    if (finishBtn) finishBtn.addEventListener('click', () => {
+      const cart = loadCart();
+      const ids = Object.keys(cart);
+      if (ids.length === 0) {
+        alert('Tu carrito está vacío. Añade productos antes de finalizar la compra.');
+        return;
+      }
+      alert('Compra Finalizada. ¡Gracias!');
+      localStorage.removeItem('sf_cart');
+      updateCartUI();
+      renderCheckout();
+    });
 
     renderCheckout();
   }
