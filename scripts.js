@@ -250,11 +250,13 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('checkoutTotal').textContent = `$${total.toFixed(2)}`;
     }
 
-    // Delegación para acciones en checkout: eliminar
+    // Delegación para acciones en checkout: eliminar (pregunta de confirmación)
     checkoutList.addEventListener('click', e => {
       const btn = e.target.closest('.remove-btn');
       if (!btn) return;
       const id = btn.dataset.id;
+      const ok = confirm('¿Estás seguro de que deseas eliminar este producto del carrito?');
+      if (!ok) return;
       removeFromCart(id);
       renderCheckout();
     });
