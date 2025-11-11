@@ -1,14 +1,16 @@
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   const yearEl = document.getElementById('year');
   if (yearEl) yearEl.textContent = new Date().getFullYear();
 
-  // Productos con imágenes
-  const products = [
-    { id: 1, name: 'Camiseta Eco', price: 199.99, desc: 'Algodón orgánico, corte moderno.', img: 'assets/camiseta.svg', alt: 'Camiseta Eco' },
-    { id: 2, name: 'Chaqueta Urbana', price: 299.99, desc: 'Corte impermeable y ligero.', img: 'assets/chaqueta.svg', alt: 'Chaqueta Urbana' },
-    { id: 3, name: 'Pantalón Slim', price: 149.99, desc: 'Tejido elástico y cómodo.', img: 'assets/pantalon.svg', alt: 'Pantalón Slim' },
-    { id: 4, name: 'Vestido Casual', price: 159.99, desc: 'Diseño atemporal para todo momento.', img: 'assets/vestido.svg', alt: 'Vestido Casual' }
+  // Productos con imágenes (tendrán preferencia los cargados desde la API)
+  let products = [
+    { id: 1, name: 'Camiseta Eco', price: 199.99, desc: 'Algodón orgánico, corte moderno.', img: 'assets/camisaeco.png', alt: 'Camiseta Eco' },
+    { id: 2, name: 'Chaqueta Urbana', price: 299.99, desc: 'Corte impermeable y ligero.', img: 'assets/chaquetaurbana.png', alt: 'Chaqueta Urbana' },
+    { id: 3, name: 'Pantalón Slim', price: 149.99, desc: 'Tejido elástico y cómodo.', img: 'assets/pantalonslim.png', alt: 'Pantalón Slim' },
+    { id: 4, name: 'Vestido Casual', price: 159.99, desc: 'Diseño atemporal para todo momento.', img: 'assets/vestidocasual.png', alt: 'Vestido Casual' }
   ];
+
+  // Productos locales (sin conexión a servidor)
 
   const productsGrid = document.getElementById('productsGrid');
   const cartBtn = document.getElementById('cartBtn');
@@ -64,6 +66,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Renderizar productos locales y actualizar UI
   renderProducts();
   updateCartUI();
 
