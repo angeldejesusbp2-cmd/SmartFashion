@@ -2,6 +2,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const yearEl = document.getElementById('year');
   if (yearEl) yearEl.textContent = new Date().getFullYear();
 
+<<<<<<< HEAD
   // Productos con imágenes (tendrán preferencia los cargados desde la API)
   let products = [
     { id: 1, name: 'Camiseta Eco', price: 199.99, desc: 'Algodón orgánico, corte moderno.', img: 'assets/camisa.png', alt: 'Camiseta Eco' },
@@ -11,6 +12,35 @@ document.addEventListener('DOMContentLoaded', async () => {
   ];
 
   // Productos locales (sin conexión a servidor)
+=======
+  // Configuración de la API
+const API_URL = 'http://localhost/smartfashion/api';
+
+// Cargar productos desde la API
+async function cargarProductos() {
+  try {
+    const response = await fetch(`${API_URL}/productos.php`);
+    const result = await response.json();
+    
+    if (result.success) {
+      products = result.data;
+      renderProducts();
+    } else {
+      console.error('Error al cargar productos:', result.message);
+    }
+  } catch (error) {
+    console.error('Error de conexión:', error);
+    // Usar productos locales como fallback
+    renderProducts();
+  }
+}
+
+// Llamar al cargar la página
+document.addEventListener('DOMContentLoaded', async () => {
+  await cargarProductos();
+  // ... resto del código
+});
+>>>>>>> 4cada1f (Agregacion de la API)
 
   const productsGrid = document.getElementById('productsGrid');
   const cartBtn = document.getElementById('cartBtn');
@@ -51,7 +81,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       el.innerHTML = `
         <img src="${p.img}" loading="lazy" alt="${p.alt}" data-id="${p.id}" class="product-img"/>
         <h3><button class="link-like" data-id="${p.id}">${p.name}</button></h3>
+<<<<<<< HEAD
         <p>${p.desc}</p>
+=======
+        <p>${p.description}</p>
+>>>>>>> 4cada1f (Agregacion de la API)
         <div class="meta">
           <strong>$${p.price.toFixed(2)}</strong>
           <div class="qty-controls">
@@ -183,7 +217,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     modalImg.src = p.img;
     modalImg.alt = p.alt;
     modalTitle.textContent = p.name;
+<<<<<<< HEAD
     modalDesc.textContent = p.desc;
+=======
+    modalDesc.textContent = p.description;
+>>>>>>> 4cada1f (Agregacion de la API)
     modalPrice.textContent = `$${p.price.toFixed(2)}`;
     modal.setAttribute('aria-hidden', 'false');
     modal.focus && modal.focus();
