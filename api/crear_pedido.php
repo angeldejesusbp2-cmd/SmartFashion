@@ -1,26 +1,18 @@
+// =============================================================================
+// api/crear_pedido.php - Endpoint para crear un pedido
+// =============================================================================
 <?php
-// =====================================================================
-// API/CREAR_PEDIDO.PHP - Crear un nuevo pedido
-// =====================================================================
 header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json; charset=UTF-8");
 header("Access-Control-Allow-Methods: POST");
-header("Access-Control-Allow-Headers: Content-Type");
+header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers");
 
-include_once 'config.php';  // CORREGIDO
+include_once '../config.php';
 
 $database = new Database();
 $db = $database->getConnection();
 
-if (!$db) {
-    http_response_code(500);
-    echo json_encode([
-        "success" => false,
-        "message" => "Error de conexión a la base de datos"
-    ]);
-    exit;
-}
-
+// Obtener datos del POST
 $data = json_decode(file_get_contents("php://input"));
 
 if (!empty($data->cliente) && !empty($data->carrito)) {
@@ -28,13 +20,10 @@ if (!empty($data->cliente) && !empty($data->carrito)) {
     try {
         $db->beginTransaction();
         
-        // 1. Crear o actualizar cliente
+        // 1. Crear o verificar cliente
         $query_cliente = "INSERT INTO clientes (nombre, email, telefono) 
                          VALUES (:nombre, :email, :telefono)
-                         ON DUPLICATE KEY UPDATE 
-                         nombre = VALUES(nombre),
-                         telefono = VALUES(telefono),
-                         id_cliente = LAST_INSERT_ID(id_cliente)";
+                         ON DUPLICATE KEY UPDATE id_cliente=LAST_INSERT_ID(id_cliente)";
         
         $stmt = $db->prepare($query_cliente);
         $stmt->bindParam(":nombre", $data->cliente->nombre);
@@ -43,59 +32,69 @@ if (!empty($data->cliente) && !empty($data->carrito)) {
         $stmt->execute();
         
         $id_cliente = $db->lastInsertId();
-        if ($id_cliente == 0) {
-            // Si es un cliente existente, obtener su ID
-            $query = "SELECT id_cliente FROM clientes WHERE email = :email";
-            $stmt = $db->prepare($query);
-            $stmt->bindParam(":email", $data->cliente->email);
+        
+        // 2. Crear dirección de envío
+        $id_direccion = null;
+        if (!empty($data->direccion)) {
+            $query_dir = "INSERT INTO direcciones 
+                         (id_cliente, nombre_completo, telefono, calle, colonia, ciudad, estado, codigo_postal)
+                         VALUES (:id_cliente, :nombre, :telefono, :calle, :colonia, :ciudad, :estado, :cp)";
+            
+            $stmt = $db->prepare($query_dir);
+            $stmt->bindParam(":id_cliente", $id_cliente);
+            $stmt->bindParam(":nombre", $data->direccion->nombre_completo);
+            $stmt->bindParam(":telefono", $data->direccion->telefono);
+            $stmt->bindParam(":calle", $data->direccion->calle);
+            $stmt->bindParam(":colonia", $data->direccion->colonia);
+            $stmt->bindParam(":ciudad", $data->direccion->ciudad);
+            $stmt->bindParam(":estado", $data->direccion->estado);
+            $stmt->bindParam(":cp", $data->direccion->codigo_postal);
             $stmt->execute();
-            $result = $stmt->fetch(PDO::FETCH_ASSOC);
-            $id_cliente = $result['id_cliente'];
+            
+            $id_direccion = $db->lastInsertId();
         }
         
-        // 2. Calcular totales y validar stock
+        // 3. Calcular totales
         $subtotal = 0;
         $productos_pedido = [];
         
         foreach ($data->carrito as $item) {
-            $query_prod = "SELECT precio, stock, nombre FROM productos WHERE id_producto = :id AND activo = 1";
+            // Obtener precio actual del producto
+            $query_prod = "SELECT precio, stock FROM productos WHERE id_producto = :id";
             $stmt = $db->prepare($query_prod);
             $stmt->bindParam(":id", $item->id);
             $stmt->execute();
             $producto = $stmt->fetch(PDO::FETCH_ASSOC);
             
-            if (!$producto) {
-                throw new Exception("Producto no encontrado: ID " . $item->id);
+            if ($producto && $producto['stock'] >= $item->cantidad) {
+                $precio = $producto['precio'];
+                $subtotal_item = $precio * $item->cantidad;
+                $subtotal += $subtotal_item;
+                
+                $productos_pedido[] = [
+                    'id' => $item->id,
+                    'cantidad' => $item->cantidad,
+                    'precio' => $precio,
+                    'subtotal' => $subtotal_item
+                ];
+            } else {
+                throw new Exception("Stock insuficiente para producto ID: " . $item->id);
             }
-            
-            if ($producto['stock'] < $item->cantidad) {
-                throw new Exception("Stock insuficiente para: " . $producto['nombre']);
-            }
-            
-            $precio = $producto['precio'];
-            $subtotal_item = $precio * $item->cantidad;
-            $subtotal += $subtotal_item;
-            
-            $productos_pedido[] = [
-                'id' => $item->id,
-                'cantidad' => $item->cantidad,
-                'precio' => $precio,
-                'subtotal' => $subtotal_item
-            ];
         }
         
-        $envio = 50.00;
+        $envio = 50.00; // Costo de envío fijo
         $total = $subtotal + $envio;
         
-        // 3. Crear pedido
-        $metodo_pago = isset($data->metodo_pago) ? $data->metodo_pago : 'transferencia';
+        // 4. Crear pedido
+        $metodo_pago = $data->metodo_pago ?? 'transferencia';
         
         $query_pedido = "INSERT INTO pedidos 
-                        (id_cliente, subtotal, envio, total, metodo_pago, estado)
-                        VALUES (:id_cliente, :subtotal, :envio, :total, :metodo_pago, 'pendiente')";
+                        (id_cliente, id_direccion, subtotal, envio, total, metodo_pago, estado)
+                        VALUES (:id_cliente, :id_direccion, :subtotal, :envio, :total, :metodo_pago, 'pendiente')";
         
         $stmt = $db->prepare($query_pedido);
         $stmt->bindParam(":id_cliente", $id_cliente);
+        $stmt->bindParam(":id_direccion", $id_direccion);
         $stmt->bindParam(":subtotal", $subtotal);
         $stmt->bindParam(":envio", $envio);
         $stmt->bindParam(":total", $total);
@@ -104,13 +103,18 @@ if (!empty($data->cliente) && !empty($data->carrito)) {
         
         $id_pedido = $db->lastInsertId();
         
-        // 4. Agregar detalle del pedido y actualizar stock
+        // 5. Agregar detalle del pedido y actualizar stock
+        $query_detalle = "INSERT INTO detalle_pedidos 
+                         (id_pedido, id_producto, cantidad, precio_unitario, subtotal)
+                         VALUES (:id_pedido, :id_producto, :cantidad, :precio, :subtotal)";
+        
+        $query_stock = "UPDATE productos SET stock = stock - :cantidad WHERE id_producto = :id";
+        
+        $query_inventario = "INSERT INTO inventario (id_producto, tipo_movimiento, cantidad, motivo, id_pedido)
+                            VALUES (:id_producto, 'salida', :cantidad, 'Venta', :id_pedido)";
+        
         foreach ($productos_pedido as $prod) {
             // Insertar detalle
-            $query_detalle = "INSERT INTO detalle_pedidos 
-                             (id_pedido, id_producto, cantidad, precio_unitario, subtotal)
-                             VALUES (:id_pedido, :id_producto, :cantidad, :precio, :subtotal)";
-            
             $stmt = $db->prepare($query_detalle);
             $stmt->bindParam(":id_pedido", $id_pedido);
             $stmt->bindParam(":id_producto", $prod['id']);
@@ -120,15 +124,12 @@ if (!empty($data->cliente) && !empty($data->carrito)) {
             $stmt->execute();
             
             // Actualizar stock
-            $query_stock = "UPDATE productos SET stock = stock - :cantidad WHERE id_producto = :id";
             $stmt = $db->prepare($query_stock);
             $stmt->bindParam(":cantidad", $prod['cantidad']);
             $stmt->bindParam(":id", $prod['id']);
             $stmt->execute();
             
             // Registrar movimiento de inventario
-            $query_inventario = "INSERT INTO inventario (id_producto, tipo_movimiento, cantidad, motivo, id_pedido)
-                                VALUES (:id_producto, 'salida', :cantidad, 'Venta - Pedido web', :id_pedido)";
             $stmt = $db->prepare($query_inventario);
             $stmt->bindParam(":id_producto", $prod['id']);
             $stmt->bindParam(":cantidad", $prod['cantidad']);
@@ -136,9 +137,9 @@ if (!empty($data->cliente) && !empty($data->carrito)) {
             $stmt->execute();
         }
         
-        // 5. Registrar historial
+        // 6. Registrar historial
         $query_historial = "INSERT INTO historial_pedidos (id_pedido, estado_nuevo, observaciones)
-                           VALUES (:id_pedido, 'pendiente', 'Pedido creado desde web')";
+                           VALUES (:id_pedido, 'pendiente', 'Pedido creado')";
         $stmt = $db->prepare($query_historial);
         $stmt->bindParam(":id_pedido", $id_pedido);
         $stmt->execute();
@@ -148,12 +149,10 @@ if (!empty($data->cliente) && !empty($data->carrito)) {
         http_response_code(201);
         echo json_encode([
             "success" => true,
-            "message" => "¡Pedido creado exitosamente!",
+            "message" => "Pedido creado exitosamente",
             "data" => [
                 "id_pedido" => $id_pedido,
-                "subtotal" => number_format($subtotal, 2),
-                "envio" => number_format($envio, 2),
-                "total" => number_format($total, 2),
+                "total" => $total,
                 "estado" => "pendiente"
             ]
         ]);
@@ -171,7 +170,7 @@ if (!empty($data->cliente) && !empty($data->carrito)) {
     http_response_code(400);
     echo json_encode([
         "success" => false,
-        "message" => "Datos incompletos. Se requiere información del cliente y productos."
+        "message" => "Datos incompletos"
     ]);
 }
 ?>
